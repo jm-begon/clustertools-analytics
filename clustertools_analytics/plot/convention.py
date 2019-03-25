@@ -26,3 +26,14 @@ class ConventionFactory(object):
 def default_factory(cube):
     return Convention(None, None, None, None)
 
+
+class OverrideConventionFactory(ConventionFactory):
+    def __init__(self, convention_factory, **kwargs):
+        self.factory = convention_factory
+        self.override_dict = kwargs
+
+    def __call__(self, cube):
+        convention = self.factory(cube)
+        for k, v in self.override_dict.items():
+            setattr(convention, k, v)
+        return convention

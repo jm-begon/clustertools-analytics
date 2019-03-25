@@ -1,13 +1,17 @@
 from .array import LatexFormater, ExcelFormater, LatexShadeFormater
 from .utils import EmptyCube, save_pdf, PDFSaver
-from .plot.convention import Convention, ConventionFactory, default_factory
-
-from .plot.plot import HzSubplot, ScatterPlot, TrajectoryPlot, \
-    DeltaTrajectoryPlot, BarPlot, ScatterSpaceHz
+from .plot.convention import Convention, ConventionFactory, default_factory, \
+    OverrideConventionFactory
+from .plot.plot import Plot2D, HzSubplot, ScatterPlot, TrajectoryPlot, \
+    BarPlot, ScatterSpaceHz
 from .plot.trajectory import TrajectoryDisplayer, MinMaxMeanTrajectory, \
     StdBarTrajectory
 from .plot.decorators import TextDecorator, LegendDecorator, GridDecorator, \
     LimitDecorator, SameLimitDecorator, TimeConverter
+from .accessor import Accessor, NumpyfySqueeze, MetricOverParameter, \
+    name_to_accessor, DiffAccessor, DomainAccessor, YSeriesXRangeAccessor, \
+    XSeriesYSeries, AtomicAcessor, SeriesAccessor, YSeriesByParamOverParams, \
+    DeltaSeries
 
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
@@ -18,9 +22,14 @@ __date__ = "20 Mar. 2019"
 
 __all__ = ["LatexFormater", "ExcelFormater", "LatexShadeFormater",
            "Convention", "ConventionFactory", "default_factory",
-           "HzSubplot", "ScatterPlot", "TrajectoryPlot",
-           "DeltaTrajectoryPlot", "BarPlot", "ScatterSpaceHz",
+           "OverrideConventionFactory",
+           "Plot2D", "HzSubplot", "ScatterPlot", "TrajectoryPlot",
+           "BarPlot", "ScatterSpaceHz",
            "TrajectoryDisplayer", "MinMaxMeanTrajectory", "StdBarTrajectory",
            "TextDecorator", "LegendDecorator", "GridDecorator",
            "LimitDecorator", "SameLimitDecorator", "TimeConverter",
+           "Accessor", "NumpyfySqueeze", "MetricOverParameter",
+           "name_to_accessor", "DiffAccessor", "DomainAccessor",
+           "XSeriesYSeries", "AtomicAcessor", "SeriesAccessor",
+           "YSeriesXRangeAccessor", "YSeriesByParamOverParams", "DeltaSeries",
            "EmptyCube", "save_pdf", "PDFSaver"]

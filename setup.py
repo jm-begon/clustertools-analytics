@@ -7,11 +7,11 @@
 
 from distutils.core import setup
 
-NAME = 'clustertools-analytics'
+NAME = 'clustertools_analytics'
 VERSION = '0.0.1'
 AUTHOR = "Jean-Michel Begon"
 AUTHOR_EMAIL = "jm.begon@gmail.com"
-URL = 'https://github.com/jm-begon/clustertools-analytics'
+URL = 'https://github.com/jm-begon/clustertools_analytics'
 DESCRIPTION = 'Toolkit to analyse results of clustertools datacube'
 with open('README.md') as f:
     LONG_DESCRIPTION = f.read()
@@ -41,5 +41,5 @@ if __name__ == '__main__':
           classifiers=CLASSIFIERS,
           platforms='any',
           install_requires=['matplotlib', 'numpy'],
-          packages=['clustertools-analytics', 'clustertools-analytics/plot'])
+          packages=['clustertools_analytics', 'clustertools_analytics/plot'])
 

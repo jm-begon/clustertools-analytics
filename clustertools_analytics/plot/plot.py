@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -5,6 +6,7 @@ from matplotlib.figure import Figure
 
 from .convention import default_factory
 from .trajectory import TrajectoryDisplayer
+from ..accessor import Accessor
 
 
 class HzSubplot(object):
@@ -62,9 +64,9 @@ class Plot2D(object):
         filtered_cubes = []
         for cube in cubes:
             if len(cube) == 0:
-                print('{}.plot got empty cube "{}". Skipping'
-                      ''.format(self.__class__.__name__,
-                                cube.name))  # TODO make it a warning
+                warnings.warn('{}.plot got empty cube "{}". Skipping'
+                              ''.format(self.__class__.__name__,
+                                        cube.name))
             else:
                 filtered_cubes.append(cube)
 
@@ -78,10 +80,10 @@ class Plot2D(object):
         for cube in filtered_cubes:
             try:
                 self.plot_(cube, **kwargs)
-            except Exception:
-                print("Error with cube '{}' ({})"
-                      "".format(cube.name, self.__class__.__name__))
-                raise
+            except Exception as e:
+                raise ValueError("Error with cube '{}' ({})"
+                                 "".format(cube.name,
+                                           self.__class__.__name__)) from e
 
     def close(self):
         if self._decorated is not None:
@@ -106,90 +108,48 @@ class ScatterPlot(LegendeablePlot):
     Plot metric in scatter plot for several random states
     """
 
-    def __init__(self, x_getter, y_getter,
+    def __init__(self, x_accessor, y_accessor,
                  convention_factory=None, decorated=None):
         super().__init__(decorated=decorated,
                          convention_factory=convention_factory)
-        self._get_x = x_getter
-        self._get_y = y_getter
+        self._get_x = x_accessor
+        self._get_y = y_accessor
 
     def plot_(self, cube, **kwargs):
         convention = self.create_convention(cube)
-        xs = []
-        ys = []
 
-        for (_, cube_i) in cube.iter_dimensions("random_state"):
-            xs.append(self._get_x(cube_i))
-            ys.append(self._get_y(cube_i))
+        xs = self._get_x(cube)
+        ys = self._get_y(cube)
 
-        xs = np.array(xs)
-        ys = np.array(ys)
+        if xs.ndim == 0:
+            # Same x for all ys
+            xs = np.ones(ys.shape, dtype=xs.dtype) * xs
 
         self.axes.scatter(xs, ys, color=convention.color,
                           marker=convention.marker,
                           label=convention.label)
 
 
-class AbstractTrajectoryPlot(LegendeablePlot):
-    def __init__(self, trajectory_displayer=None,
+class TrajectoryPlot(LegendeablePlot):
+    def __init__(self, data_accessor, trajectory_displayer=None,
                  convention_factory=None, decorated=None):
         super().__init__(decorated=decorated,
                          convention_factory=convention_factory)
+        self.data_accessor = data_accessor
+
         if trajectory_displayer is None:
             trajectory_displayer = TrajectoryDisplayer()
         self._trajectory_displayer = trajectory_displayer
 
-    def _get_xs_and_yss(self, cube):
-        pass
-
     def plot_(self, cube, **kwargs):
+        res = self.data_accessor(cube)
+        if self.data_accessor.n_outputs == 1:
+            yss = res
+            xs = np.arange(len(yss))
+        else:
+            xs, yss = res
         convention = self.create_convention(cube)
-        xs, yss = self._get_xs_and_yss(cube)
         self._trajectory_displayer(self.axes, xs, yss, convention)
-
-
-class TrajectoryPlot(AbstractTrajectoryPlot):
-    """
-    Plot trajectories for several random state
-    """
-
-    def __init__(self, metric_name="valid_accuracies",
-                 trajectory_displayer=None, convention_factory=None,
-                 decorated=None):
-        super().__init__(trajectory_displayer=trajectory_displayer,
-                         decorated=decorated,
-                         convention_factory=convention_factory)
-        self._metric_name = metric_name
-
-    @property
-    def metric_name(self):
-        return self._metric_name
-
-    def _get_xs_and_yss(self, cube):
-        yss = cube(self.metric_name).numpyfy(True).squeeze().T
-        xs = np.arange(yss.shape[0])
-
-        return xs, yss
-
-
-class DeltaTrajectoryPlot(AbstractTrajectoryPlot):
-    def __init__(self, metric_name_1="train_accuracies",
-                 metric_name_2="valid_accuracies", trajectory_displayer=None,
-                 convention_factory=None, decorated=None):
-        super().__init__(trajectory_displayer=trajectory_displayer,
-                         decorated=decorated,
-                         convention_factory=convention_factory)
-        self.metric_name_1 = metric_name_1
-        self.metric_name_2 = metric_name_2
-
-    def _get_xs_and_yss(self, cube):
-        yss1 = cube(self.metric_name_1).numpyfy(True).squeeze().T
-        yss2 = cube(self.metric_name_2).numpyfy(True).squeeze().T
-
-        yss = yss1 - yss2
-        xs = np.arange(yss.shape[0])
-
-        return xs, yss
 
 
 class BarPlot(LegendeablePlot):
@@ -197,17 +157,17 @@ class BarPlot(LegendeablePlot):
     Plot as bar plot
     """
 
-    def __init__(self, metric_name="duration", vertical=True,
+    def __init__(self, height_accessor, vertical=True,
                  convention_factory=None, decorated=None):
         super().__init__(decorated=decorated,
                          convention_factory=convention_factory)
-        self._metric_name = metric_name
+        self.height_accessor = height_accessor
         self._n_bars = 0
         self._vertical = vertical
 
     def plot_(self, cube, **kwargs):
         convention = self.create_convention(cube)
-        values = cube(self._metric_name).numpyfy(True)
+        values = self.height_accessor(cube)
         xs = [self._n_bars]
         self._n_bars += 1
         ys = [values.mean()]
@@ -226,20 +186,20 @@ class BarPlot(LegendeablePlot):
 
 
 class ScatterSpaceHz(ScatterPlot):
-    class IncrementalSpacer(object):
+    class IncrementalSpacer(Accessor):
         def __init__(self, n_groups):
             self.spacing = 1. / (n_groups + 1.)
             self.x_pos = self.spacing
 
-        def __call__(self, cube, **kwargs):
-            return self.x_pos
+        def access(self, cube):
+            return np.array(self.x_pos)
 
         def increment(self):
             self.x_pos += self.spacing
 
-    def __init__(self, y_getter, convention_factory=None, decorated=None):
-        super().__init__(x_getter=ScatterSpaceHz.IncrementalSpacer,
-                         y_getter=y_getter,
+    def __init__(self, y_accessor, convention_factory=None, decorated=None):
+        super().__init__(x_accessor=ScatterSpaceHz.IncrementalSpacer,
+                         y_accessor=y_accessor,
                          convention_factory=convention_factory,
                          decorated=decorated)
 
