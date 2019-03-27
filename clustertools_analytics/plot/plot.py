@@ -212,3 +212,23 @@ class ScatterSpaceHz(ScatterPlot):
     def plot_(self, cube, **kwargs):
         super().plot_(cube, **kwargs)
         self._get_x.increment()  # Ugly catch
+
+
+class HorizontalLine(LegendeablePlot):
+    def __init__(self, y_accessor, convention_factory=None, decorated=None,
+                 linestyle=None, alpha=1, linewidth=None):
+        super().__init__(decorated=decorated,
+                         convention_factory=convention_factory)
+        self.y_accessor = y_accessor
+        self.linestyle = linestyle
+        self.alpha = alpha
+        self.linewidth = linewidth
+
+    def plot_(self, cube, **kwargs):
+        convention = self.create_convention(cube)
+        ys = self.y_accessor(cube)
+        linestyle = convention.linestyle if self.linestyle is None else \
+            self.linestyle
+        self.axes.axhline(np.nanmean(ys), color=convention.color,
+                          alpha=self.alpha, linestyle=linestyle,
+                          linewidth=self.linewidth)

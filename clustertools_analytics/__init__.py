@@ -3,7 +3,7 @@ from .utils import EmptyCube, save_pdf, PDFSaver
 from .plot.convention import Convention, ConventionFactory, default_factory, \
     OverrideConventionFactory
 from .plot.plot import Plot2D, HzSubplot, ScatterPlot, TrajectoryPlot, \
-    BarPlot, ScatterSpaceHz
+    BarPlot, ScatterSpaceHz, HorizontalLine
 from .plot.trajectory import TrajectoryDisplayer, MinMaxMeanTrajectory, \
     StdBarTrajectory
 from .plot.decorators import TextDecorator, LegendDecorator, GridDecorator, \
@@ -24,7 +24,7 @@ __all__ = ["LatexFormater", "ExcelFormater", "LatexShadeFormater",
            "Convention", "ConventionFactory", "default_factory",
            "OverrideConventionFactory",
            "Plot2D", "HzSubplot", "ScatterPlot", "TrajectoryPlot",
-           "BarPlot", "ScatterSpaceHz",
+           "BarPlot", "ScatterSpaceHz", "HorizontalLine",
            "TrajectoryDisplayer", "MinMaxMeanTrajectory", "StdBarTrajectory",
            "TextDecorator", "LegendDecorator", "GridDecorator",
            "LimitDecorator", "SameLimitDecorator", "TimeConverter",
