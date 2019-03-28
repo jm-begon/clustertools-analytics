@@ -1,6 +1,8 @@
-import numpy as np
+import warnings
 from abc import ABCMeta
 from functools import partial
+
+import numpy as np
 
 from clustertools import Datacube
 
@@ -65,15 +67,21 @@ class MetricOverParameter(Accessor):
 
     def access(self, cube):
         values = []
-        for _, cube_i in cube.iter_dimensions(*self.parameter_names):
+        for t, cube_i in cube.iter_dimensions(*self.parameter_names):
             v = self.metric_accessor(cube_i)
             if isinstance(v, Datacube):
                 if self.auto_numpyfy:
                     v = v.numpyfy(True).squeeze()
                 else:
                     raise ValueError("Datacube '{}' is not reduced by {} "
-                                     "".format(cube.name, repr(self) ))
-            values.append(v)
+                                     "".format(cube.name, repr(self)))
+            if v is None:
+                d = {p: v for p,v in zip(self.parameter_names, t)}
+
+                warnings.warn("Missing values for {} of cube '{}' "
+                              "(at {})".format(repr(d), cube.name, repr(self)))
+            else:
+                values.append(v)
 
         return self.aggregator(values)
 

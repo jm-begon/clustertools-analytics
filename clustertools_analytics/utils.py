@@ -66,7 +66,7 @@ class PDFSaver(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
-                self._close(exc_val is None)
+            self._close(exc_val is None)
         finally:
             self.PdfPages.close()
 
