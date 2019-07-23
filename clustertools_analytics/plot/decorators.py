@@ -4,15 +4,20 @@ from .plot import Plot2D
 
 
 class TextDecorator(Plot2D):
-    def __init__(self, decorated, xlabel=None, ylabel=None, title=None):
+    def __init__(self, decorated, xlabel=None, ylabel=None, title=None,
+                 xlabel_rot=None):
         super().__init__(decorated)
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.title = title
+        self.xlabel_rot = xlabel_rot
 
     def plot_(self, cube, **kwargs):
         if self.xlabel:
             self.axes.set_xlabel(self.xlabel)
+        if self.xlabel_rot:
+            for tick in self.axes.get_xticklabels():
+                tick.set_rotation(self.xlabel_rot)
         if self.ylabel:
             self.axes.set_ylabel(self.ylabel)
         if self.title:
@@ -63,6 +68,7 @@ class LimitDecorator(Plot2D):
         self.y_max = y_max
 
     def plot_(self, cube, **kwargs):
+
         self.axes.set_xlim(self.x_min, self.x_max)
         self.axes.set_ylim(self.y_min, self.y_max)
 

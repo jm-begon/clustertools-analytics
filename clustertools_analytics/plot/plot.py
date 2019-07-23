@@ -10,13 +10,41 @@ from ..accessor import Accessor
 
 
 class HzSubplot(object):
-    def __init__(self, n_subplots, figure=None):
+    def __init__(self, n_subplots, figure=None, sharex=False):
         self._responsible_for_fig = False
         if figure is None:
             figure = plt.figure()
             self._responsible_for_fig = True
         self._fig = figure
-        plt.subplots(1, n_subplots, sharey='row', num=self._fig.number)
+        plt.subplots(1, n_subplots, sharey=True, num=self._fig.number,
+                     sharex=sharex)
+
+    def __iter__(self):
+        return iter(self._fig.axes)
+
+    def close(self):
+        if self._fig is not None:
+            plt.close(self._fig)
+
+    def decorate(self, xlabel=None, ylabel=None, title=None):
+        if title is not None:
+            self._fig.suptitle(title)
+        if xlabel is not None:
+            self._fig.text(0.5, 0.04, xlabel, ha='center')
+        if ylabel is not None:
+            self._fig.axes[0].set_ylabel(ylabel)
+
+
+class Subplot(object):
+    def __init__(self, n_rows, n_cols, figure=None, sharey=False,
+                 sharex=False):
+        self._responsible_for_fig = False
+        if figure is None:
+            figure = plt.figure()
+            self._responsible_for_fig = True
+        self._fig = figure
+        plt.subplots(n_rows, n_cols, sharey=sharey, num=self._fig.number,
+                     sharex=sharex)
 
     def __iter__(self):
         return iter(self._fig.axes)
@@ -84,6 +112,17 @@ class Plot2D(object):
                 raise ValueError("Error with cube '{}' ({})"
                                  "".format(cube.name,
                                            self.__class__.__name__)) from e
+
+        try:
+            if self._decorated is not None:
+                self._decorated.pack()
+            self.pack()
+        except Exception as e:
+            raise ValueError("Error while packing ({})"
+                             "".format(self.__class__.__name__)) from e
+
+    def pack(self):
+        pass
 
     def close(self):
         if self._decorated is not None:
@@ -183,6 +222,62 @@ class BarPlot(LegendeablePlot):
             self.axes.set_xticks([])
         else:
             self.axes.set_yticks([])
+
+
+class HistogramPlot(LegendeablePlot):
+    def __init__(self, distrib_accessor, n_bins=10, density=False,
+                 cumulative=False, convention_factory=None, decorated=None):
+        super().__init__(decorated=decorated,
+                         convention_factory=convention_factory)
+        self.distrib_accessor = distrib_accessor
+        self.n_bins = n_bins
+        self.density = density
+        self.cumulative = cumulative
+
+    def plot_(self, cube, **kwargs):
+        convention = self.create_convention(cube)
+        distribution = self.distrib_accessor(cube)
+
+        weights = None
+        if self.density:
+            weights = np.ones_like(distribution) / float(len(distribution))
+
+        if distribution.ndim != 1:
+            raise ValueError("Accessor did not yield a 1D tensor (got {}D)"
+                             "".format(distribution.ndim))
+
+        self.axes.hist(distribution, bins=self.n_bins, weights=weights,
+                       cumulative=self.cumulative, color=convention.color,
+                       histtype="step" if self.cumulative else "bar",
+                       label=convention.label, hatch=convention.hatch)
+
+
+class BoxPlot(LegendeablePlot):
+    def __init__(self, distrib_accessor,
+                 convention_factory=None, decorated=None):
+        super().__init__(decorated=decorated,
+                         convention_factory=convention_factory)
+        # Look at https://stackoverflow.com/questions/16592222/matplotlib-group-boxplots
+        # for how to plot each separately
+        self.distrib_accessor = distrib_accessor
+        self.distribs = []
+        self.labels = []
+
+    def plot_(self, cube, **kwargs):
+        convention = self.create_convention(cube)
+        distribution = self.distrib_accessor(cube)
+
+        distribution = distribution.squeeze()
+
+        if distribution.ndim != 1:
+            raise ValueError("Accessor did not yield a 1D tensor (got {}D)"
+                             "".format(distribution.ndim))
+
+        self.distribs.append(distribution)
+        self.labels.append(convention.label)
+
+    def pack(self):
+        self.axes.boxplot(self.distribs, labels=self.labels)
 
 
 class ScatterSpaceHz(ScatterPlot):
