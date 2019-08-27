@@ -131,6 +131,20 @@ class TimeConverter(Plot2D):
         set_label("{} [{}]".format(self.label, unit))
 
 
+class TightLayout(Plot2D):
+    def __init__(self, decorated=None, pad=1.08, h_pad=None, w_pad=None,
+                 rect=None):
+        super().__init__(decorated)
+        self.pad = pad
+        self.h_pad = h_pad
+        self.w_pad = w_pad
+        self.rect = rect
+
+    def pack(self):
+        self.axes.figure.tight_layout(pad=self.pad, h_pad=self.h_pad,
+                                      w_pad=self.w_pad, rect=self.rect)
+
+
 # class TrajectoryDecorator(Plot2D):
 #     def __init__(self, decorated, ylabel, xlabel="Epochs", subtitle=None,
 #                  y_min=None, y_max=None):
