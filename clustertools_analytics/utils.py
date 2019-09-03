@@ -37,6 +37,10 @@ def save_pdf(fname):
 
 
 class PDFSaver(object):
+    @classmethod
+    def create_empty_figure(cls, **kwargs):
+        return plt.figure(**kwargs)
+
     def __init__(self, fname):
         self.fpath = os.path.realpath("{}.pdf".format(fname))
         self.fig = None
@@ -82,3 +86,8 @@ class PDFSaver(object):
         if new_fig:
             return self.new_figure()
         return fig
+
+    def switch_figure(self, figure, save_current=True):
+        self._close(save_current)
+        self.fig = figure
+        return self.fig

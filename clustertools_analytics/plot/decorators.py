@@ -54,7 +54,7 @@ class GridDecorator(Plot2D):
         if self.xgrid:
             self.axes.xaxis.grid(True)
         if self.ygrid:
-            self.axes.yaxis.grid(True)
+            self.axes.yaxis.grid(True, which="both")
 
 
 class LimitDecorator(Plot2D):
