@@ -9,51 +9,6 @@ from .trajectory import TrajectoryDisplayer
 from ..accessor import Accessor
 
 
-class Subplot(object):
-    def __init__(self, n_rows, n_cols, figure=None, sharey=False,
-                 sharex=False):
-        self._responsible_for_fig = False
-        if figure is None:
-            figure = plt.figure()
-            self._responsible_for_fig = True
-        self._fig = figure
-        plt.subplots(n_rows, n_cols, sharey=sharey, num=self._fig.number,
-                     sharex=sharex)
-
-    def __iter__(self):
-        return iter(self._fig.axes)
-
-    def close(self):
-        if self._fig is not None:
-            plt.close(self._fig)
-
-    def decorate(self, xlabel=None, ylabel=None, title=None):
-        if title is not None:
-            self._fig.suptitle(title)
-        if xlabel is not None:
-            self._fig.text(0.5, 0.04, xlabel, ha='center')
-        if ylabel is not None:
-            self._fig.axes[0].set_ylabel(ylabel)
-
-    def make_legend(self, *args, **kwargs):
-        handles, labels = None, None
-        for ax in self:
-            handles, labels = ax.get_legend_handles_labels()
-        self._fig.legend(handles, labels, *args, **kwargs)
-        # self._fig.tight_layout(rect=(0.2, 0.2, 0.8, 0.8))
-
-    def adjust(self, left=None, bottom=None, right=None, top=None,
-               wspace=None, hspace=None):
-        # https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.subplots_adjust.html
-        self._fig.subplots_adjust(left, bottom, right, top, wspace, hspace)
-
-
-class HzSubplot(Subplot):
-    def __init__(self, n_subplots, figure=None, sharex=False):
-        super().__init__(n_rows=1, n_cols=n_subplots, figure=figure,
-                         sharey=True, sharex=sharex)
-
-
 class Plot2D(object):
     def __init__(self, decorated=None):
         self._fig = None
@@ -158,7 +113,8 @@ class ScatterPlot(LegendeablePlot):
 
         self.axes.scatter(xs, ys, color=convention.color,
                           marker=convention.marker,
-                          label=convention.label)
+                          label=convention.label,
+                          alpha=convention.alpha)
 
 
 class TrajectoryPlot(LegendeablePlot):
@@ -208,12 +164,35 @@ class BarPlot(LegendeablePlot):
         err_label = "yerr" if self._vertical else "xerr"
 
         plotter(xs, ys, color=convention.color, label=convention.label,
-                hatch=convention.hatch, **{err_label: std})
+                hatch=convention.hatch, alpha=convention.alpha,
+                **{err_label: std})
 
         if self._vertical:
             self.axes.set_xticks([])
         else:
             self.axes.set_yticks([])
+
+
+class StackedBarPlot(LegendeablePlot):
+    """
+    1 cube + 1 series accessor = 1 bar in p parts (aka layers)
+    """
+    def __init__(self, bar_accessor, convention_factory=None,
+                 decorated=None):
+        super().__init__(decorated=decorated,
+                         convention_factory=convention_factory)
+        raise NotImplementedError()
+
+
+class StackedBarPlotByLayer(LegendeablePlot):
+    """
+    1 cube + 1 series accessor = p bars with 1 one part (aka layer)
+    """
+    def __init__(self, layer_accessor, convention_factory=None,
+                 decorated=None):
+        super().__init__(decorated=decorated,
+                         convention_factory=convention_factory)
+        raise NotImplementedError()
 
 
 class HistogramPlot(LegendeablePlot):
@@ -241,7 +220,8 @@ class HistogramPlot(LegendeablePlot):
         self.axes.hist(distribution, bins=self.n_bins, weights=weights,
                        cumulative=self.cumulative, color=convention.color,
                        histtype="step" if self.cumulative else "bar",
-                       label=convention.label, hatch=convention.hatch)
+                       label=convention.label, hatch=convention.hatch,
+                       alpha=convention.alpha)
 
 
 class BoxPlot(LegendeablePlot):

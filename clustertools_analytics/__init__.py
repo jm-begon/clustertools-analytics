@@ -5,9 +5,10 @@ from .array import Formater, TSVFormater, CSVFormater, LatexFormater, \
 from .utils import EmptyCube, save_pdf, PDFSaver
 from .plot.convention import Convention, ConventionFactory, default_factory, \
     OverrideConventionFactory
-from .plot.plot import Plot2D, HzSubplot, ScatterPlot, \
+from .plot.layout import Subplot, HzSubplot, TwoLegendPlot
+from .plot.plot import Plot2D, ScatterPlot, \
     TrajectoryPlot, BarPlot, ScatterSpaceHz, HorizontalLine, HistogramPlot, \
-    Subplot, BoxPlot, VerticalLine
+    BoxPlot, VerticalLine
 from .plot.trajectory import TrajectoryDisplayer, MinMaxMeanTrajectory, \
     StdBarTrajectory
 from .plot.decorators import TextDecorator, LegendDecorator, GridDecorator, \
@@ -16,6 +17,7 @@ from .accessor import Accessor, NumpyfySqueeze, MetricOverParameter, \
     name_to_accessor, DiffAccessor, DomainAccessor, YSeriesXRangeAccessor, \
     XSeriesYSeries, AtomicAcessor, SeriesAccessor, YSeriesByParamOverParams, \
     DeltaSeries
+from .plot.widget import Legend
 
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
@@ -30,7 +32,7 @@ __all__ = ["Formater", "TSVFormater", "CSVFormater", "LatexFormater",
            "LatexColumnColorFormater", "LatexRowColorFormater",
            "LinearColorer", "OrdinalColorer",
            "Convention", "ConventionFactory", "default_factory",
-           "OverrideConventionFactory",
+           "OverrideConventionFactory", "TwoLegendPlot",
            "Plot2D", "TightLayout", "HzSubplot", "ScatterPlot",
            "TrajectoryPlot", "BarPlot", "ScatterSpaceHz", "HorizontalLine",
            "HistogramPlot", "Subplot", "BoxPlot",
@@ -41,4 +43,4 @@ __all__ = ["Formater", "TSVFormater", "CSVFormater", "LatexFormater",
            "name_to_accessor", "DiffAccessor", "DomainAccessor",
            "XSeriesYSeries", "AtomicAcessor", "SeriesAccessor",
            "YSeriesXRangeAccessor", "YSeriesByParamOverParams", "DeltaSeries",
-           "EmptyCube", "save_pdf", "PDFSaver", "VerticalLine"]
+           "EmptyCube", "save_pdf", "PDFSaver", "VerticalLine", "Legend"]

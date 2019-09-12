@@ -25,6 +25,7 @@ class TextDecorator(Plot2D):
 
 
 class LegendDecorator(Plot2D):
+
     def __init__(self, decorated, location='best', title=None):
         super().__init__(decorated)
         self.location = location

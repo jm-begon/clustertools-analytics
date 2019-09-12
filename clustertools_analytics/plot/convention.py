@@ -9,12 +9,13 @@ The default matplotlib colormap:
 
 class Convention(object):
     def __init__(self, label, color, linestyle="-", marker="o", hatch=None,
-                 legend_name=None):
+                 legend_name=None, alpha=1.):
         self.label = label
         self.color = color
         self.linestyle = linestyle
         self.marker = marker
         self.hatch = hatch
+        self.alpha = alpha
         self.legend_name = legend_name
 
 
