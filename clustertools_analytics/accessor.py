@@ -77,9 +77,10 @@ class MetricOverParameter(Accessor):
                                      "".format(cube.name, repr(self)))
             if v is None:
                 d = {p: v for p,v in zip(self.parameter_names, t)}
-
-                warnings.warn("Missing values for {} of cube '{}' "
-                              "(at {})".format(repr(d), cube.name, repr(self)))
+                warnings.warn("Missing values for {} of "
+                              "cube '{}' (at {}): {} from {}"
+                              "".format(repr(d), cube.name, repr(self),
+                                        cube_i, cube))
             else:
                 values.append(v)
 
