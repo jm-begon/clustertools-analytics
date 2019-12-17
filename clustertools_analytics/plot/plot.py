@@ -319,3 +319,26 @@ class VerticalLine(LegendeablePlot):
         self.axes.axvline(np.nanmean(ys), color=convention.color,
                           alpha=self.alpha, linestyle=linestyle,
                           linewidth=self.linewidth)
+
+
+class CorrelationPlot(Plot2D):
+    def __init__(self, distrib_accessors, colormap=None, colorbar=True,
+                 decorated=None):
+        super().__init__(decorated=decorated)
+        self.distrib_accessors = distrib_accessors
+        self.colormap = colormap
+        self.colorbar = colorbar
+
+
+    def plot_(self, cube, **kwargs):
+        row_is_variable = [
+            access(cube) for access in self.distrib_accessors
+        ]
+
+        corr = np.corrcoef(np.array(row_is_variable))
+
+        im = self.axes.imshow(corr, cmap=self.colormap, vmin=-1, vmax=1)
+        if self.colorbar:
+            self.axes.figure.colorbar(im, ax=self.axes)
+
+
