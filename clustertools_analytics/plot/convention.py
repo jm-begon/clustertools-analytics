@@ -38,3 +38,13 @@ class OverrideConventionFactory(ConventionFactory):
         for k, v in self.override_dict.items():
             setattr(convention, k, v)
         return convention
+
+
+class CstFactory(ConventionFactory):
+    def __init__(self, label, color, linestyle="-", marker="o", hatch=None,
+                 legend_name=None, alpha=1.):
+        self.convetion = Convention(label, color, linestyle, marker,
+                                    hatch, legend_name, alpha)
+
+    def __call__(self, cube):
+        return self.convetion

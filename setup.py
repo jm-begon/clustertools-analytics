@@ -41,5 +41,6 @@ if __name__ == '__main__':
           classifiers=CLASSIFIERS,
           platforms='any',
           install_requires=['matplotlib', 'numpy'],
-          packages=['clustertools_analytics', 'clustertools_analytics/plot'])
+          packages=['clustertools_analytics', 'clustertools_analytics/plot',
+                    "clustertools_analytics/array"])
 

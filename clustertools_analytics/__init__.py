@@ -1,7 +1,8 @@
-from .array import Formater, TSVFormater, CSVFormater, LatexFormater, \
-    LatexColorFormater, Table, TableAndLatexFormater, ExcelTableAndFormater, \
-    TableAndLatexShaderFormater, LatexColumnColorFormater, LinearColorer, \
-    LatexRowColorFormater, OrdinalColorer
+from .array.base import MeanStd, Formater, TSVFormater, CSVFormater, Table
+from .array.latex import LatexFormater, LatexColorFormater, \
+    LatexColumnColorFormater, LatexRowColorFormater
+from .array.colorer import LinearColorer, OrdinalColorer
+
 from .utils import EmptyCube, save_pdf, PDFSaver
 from .plot.convention import Convention, ConventionFactory, default_factory, \
     OverrideConventionFactory
@@ -27,8 +28,7 @@ __date__ = "20 Mar. 2019"
 
 
 __all__ = ["Formater", "TSVFormater", "CSVFormater", "LatexFormater",
-           "LatexColorFormater", "Table", "TableAndLatexFormater",
-           "ExcelTableAndFormater", "TableAndLatexShaderFormater",
+           "LatexColorFormater", "Table",
            "LatexColumnColorFormater", "LatexRowColorFormater",
            "LinearColorer", "OrdinalColorer",
            "Convention", "ConventionFactory", "default_factory",
