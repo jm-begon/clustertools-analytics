@@ -77,11 +77,25 @@ class OrdinalColorer(BaseFloatColorer):
             idx = i
             if float_value <= v:
                 break
-        if self.skip_rate is not None and \
-                        idx < self.skip_rate * len(self.memory):
-            return None
+        if self.skip_rate is not None:
+            ref = self.skip_rate * len(self.memory)
+            if self.skip_rate >= 0 and idx < ref:
+                return None
+            elif self.skip_rate < 0 and idx >= -ref:
+                return None
         normalized_value = np.interp(
             [idx], [0, len(self.memory)-1],
             [self.shading_min, self.shading_max]
         )[0]
         return self.color_map(float(normalized_value))  # Float value for [0, 1]
+
+
+class CircularColorerFactory(object):
+    def __init__(self, *color_factories):
+        self.index = 0
+        self.color_factories = color_factories
+
+    def __call__(self):
+        colorer = self.color_factories[self.index]()
+        self.index = (self.index + 1) % len(self.color_factories)
+        return colorer

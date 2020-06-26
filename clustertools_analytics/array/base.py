@@ -114,6 +114,9 @@ class Table(object):
     def __str__(self):
         return self.formatter(self.content)
 
+    def __len__(self):
+        return len(self.content)
+
 
 
 

@@ -107,7 +107,6 @@ class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
 
 
     def _format_float(self, value, row, column):
-        print("format float")
         prefix = self._color_prefix(value, row, column)
         return "{} {}".format(prefix, super()._format_float(value, row, column))
 
@@ -126,3 +125,4 @@ class LatexColumnColorFormater(LatexSubsetColorFormater):
 class LatexRowColorFormater(LatexSubsetColorFormater):
     def _get_colorer(self, row, column):
         return self.colorers[row]
+
