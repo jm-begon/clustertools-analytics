@@ -40,7 +40,7 @@ if __name__ == '__main__':
           license='BSD3',
           classifiers=CLASSIFIERS,
           platforms='any',
-          install_requires=['matplotlib', 'numpy'],
+          install_requires=['matplotlib', 'numpy', 'pylatex'],
           packages=['clustertools_analytics', 'clustertools_analytics/plot',
                     "clustertools_analytics/array"])
 

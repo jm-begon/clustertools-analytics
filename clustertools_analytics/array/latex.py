@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from clustertools_analytics.array.base import Formater, MeanStd
 from clustertools_analytics.array.colorer import LinearColorer
+import pylatex
 
 
 class LatexFormater(Formater):
@@ -126,3 +127,83 @@ class LatexRowColorFormater(LatexSubsetColorFormater):
     def _get_colorer(self, row, column):
         return self.colorers[row]
 
+
+
+class LatexTableDoc(object):
+
+    @classmethod
+    def ready(cls, doc=None, new_page=False):
+        if doc is None:
+            return cls()
+        if new_page:
+            doc.new_page()
+        return doc
+
+    def __init__(self, **kwargs):
+        self.tables = []
+        geometry = {
+                "landscape": True,
+                "margin": "0.5in",
+                "headheight": "20pt",
+                "headsep": "10pt",
+                "includeheadfoot": True
+            }
+        geometry.update(kwargs)
+        self.doc = pylatex.Document(
+            page_numbers=True,
+            geometry_options=geometry
+        )
+        self.doc.packages.append(pylatex.Package("xcolor", options='table'))
+
+        self.fpath = None
+        self.len_last_page = 0
+
+
+    def add_table(self, table, header, caption=None):
+        self.len_last_page += len(table)
+        if self.len_last_page > 35:
+            self.len_last_page = len(table)
+            self.new_page()
+
+        with self.doc.create(pylatex.Center()) as center, \
+                center.create(
+                    pylatex.LongTable("l|" + "|c" * (len(header) - 1))) \
+                        as latex_table:
+            latex_table.add_hline()
+            latex_table.add_row(header)
+            latex_table.add_hline()
+            latex_table.end_table_header()
+
+            latex_table.append(pylatex.NoEscape(str(table)))
+            latex_table.add_hline()
+
+            if caption is not None:
+                caption = caption.replace("_", "\\_")
+                self.doc.append(pylatex.NoEscape(caption))
+
+    def new_page(self):
+        self.doc.append(pylatex.NewPage())
+
+    def set_default_fpath(self, fpath):
+        self.fpath = fpath
+
+
+
+    def generate(self, fpath=None, what="pdf"):
+        pdf = what == "pdf"
+        tex = what == "tex"
+
+        if what == "both":
+            pdf = tex = True
+
+        if fpath is None:
+            fpath = self.fpath
+
+        if fpath is None:
+            raise ValueError("No destination specified.")
+
+        if pdf:
+            self.doc.generate_pdf((fpath), clean_tex=True)
+
+        if tex:
+            self.doc.generate_tex(fpath)
