@@ -4,14 +4,14 @@ from abc import ABCMeta
 from abc import abstractmethod
 from collections import defaultdict
 
-from clustertools_analytics.array.base import Formater, MeanStd
+from clustertools_analytics.array.base import Formater, MeanStd, GaussianPValue
 from clustertools_analytics.array.colorer import LinearColorer
 import pylatex
 
 
 class LatexFormater(Formater):
-    def __init__(self, float_format="{:.2f}"):
-        super().__init__(" & ", float_format)
+    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
+        super().__init__(" & ", float_format, sc_formater)
 
     def __call__(self, table_content):
         return "\\\\ {}".format(os.linesep).join(list(self.rows(table_content)))
@@ -26,13 +26,17 @@ class LatexFormater(Formater):
         if isinstance(special, MeanStd):
             return "{} $\\pm$ {}".format(ffloat(special.mean, row, column),
                                          ffloat(special.std, row, column))
+
+        if isinstance(special, GaussianPValue):
+            pv_str = self.sc_formater.format(special.p_value)
+            return "{} ({})".format(ffloat(special.value, row, column), pv_str)
         raise ValueError("Unknown cell type '{}'".format(repr(special)))
 
 
 
 class BaseLatexColorFormater(LatexFormater):
-    def __init__(self, float_format="{:.2f}"):
-        super().__init__(float_format)
+    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
+        super().__init__(float_format, sc_formater)
 
     @abstractmethod
     def _first_pass(self, table_content):
@@ -79,9 +83,6 @@ class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
     def _first_pass(self, table_content):
         for r, row in enumerate(table_content):
             for c, cell in enumerate(row):
-                if isinstance(cell, MeanStd):
-                    self._get_colorer(r, c).memo(cell.mean)
-                    continue
                 try:
                     v = float(cell)
                     self._get_colorer(r, c).memo(v)
@@ -100,9 +101,7 @@ class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
     def _format_special(self, special, row, column, raw=False):
         if raw:
             return super()._format_special(special, row, column, True)
-        if not isinstance(special, MeanStd):
-            raise ValueError("Unknown cell type '{}'".format(repr(special)))
-        prefix = self._color_prefix(special.mean, row, column)
+        prefix = self._color_prefix(float(special), row, column)
         return "{} {}".format(prefix, super()._format_special(special, row, column, True))
 
 

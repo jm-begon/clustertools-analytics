@@ -5,6 +5,7 @@ from functools import partial
 
 from matplotlib.pyplot import get_cmap
 import numpy as np
+from scipy import stats
 
 """
 Example
@@ -26,11 +27,39 @@ class MeanStd(CellType):
         self.mean = mean
         self.std = std
 
+    def __str__(self):
+        return "{} +/- {}".format(self.mean, self.std)
+
+    def __float__(self):
+        return self.mean
+
+
+class GaussianPValue(CellType):
+    def __init__(self, value, pop_mean, pop_std,
+                 bilateral=True):
+
+        self.value = value
+
+        z = (value - pop_mean) / pop_std
+        self.p_value = 1 - stats.norm.cdf(abs(z))
+
+        if bilateral:
+            self.p_value *= 2
+
+    def __str__(self):
+        return "{} ({})".format(self.value, self.p_value)
+
+    def __float__(self):
+        return self.value
+
+
 
 class Formater(object):
-    def __init__(self, separator=" ", float_format="{:.2f}"):
+    def __init__(self, separator=" ", float_format="{:.2f}",
+                 sc_formater="{:.2e}"):
         self.separator = separator
         self.float_format = float_format
+        self.sc_formater = sc_formater
 
     def _format_float(self, value, row, column):
         return self.float_format.format(value)
@@ -60,8 +89,8 @@ class Formater(object):
 
 
 class TSVFormater(Formater):
-    def __init__(self, float_format="{:.2f}"):
-        super().__init__("\t", float_format)
+    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
+        super().__init__("\t", float_format, sc_formater)
 
     def _format_special(self, special, row, column):
         if isinstance(special, MeanStd):
@@ -70,8 +99,8 @@ class TSVFormater(Formater):
 
 
 class CSVFormater(Formater):
-    def __init__(self, float_format="{:.2f}"):
-        super().__init__(";", float_format)
+    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
+        super().__init__(";", float_format, sc_formater)
 
 
 

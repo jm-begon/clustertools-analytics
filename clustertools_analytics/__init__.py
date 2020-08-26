@@ -1,4 +1,5 @@
-from .array.base import MeanStd, Formater, TSVFormater, CSVFormater, Table
+from .array.base import MeanStd, Formater, TSVFormater, CSVFormater, Table, \
+    GaussianPValue
 from .array.latex import LatexFormater, LatexColorFormater, \
     LatexColumnColorFormater, LatexRowColorFormater
 from .array.colorer import LinearColorer, OrdinalColorer
@@ -28,7 +29,7 @@ __date__ = "20 Mar. 2019"
 
 
 __all__ = ["Formater", "TSVFormater", "CSVFormater", "LatexFormater",
-           "LatexColorFormater", "Table",
+           "LatexColorFormater", "Table", "GaussianPValue",
            "LatexColumnColorFormater", "LatexRowColorFormater",
            "LinearColorer", "OrdinalColorer",
            "Convention", "ConventionFactory", "default_factory",
