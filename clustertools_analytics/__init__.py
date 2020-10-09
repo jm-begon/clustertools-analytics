@@ -2,7 +2,7 @@ from .array.base import MeanStd, Formater, TSVFormater, CSVFormater, Table, \
     GaussianPValue
 from .array.latex import LatexFormater, LatexColorFormater, \
     LatexColumnColorFormater, LatexRowColorFormater
-from .array.colorer import LinearColorer, OrdinalColorer
+from .array.colorer import LinearShader, OrdinalShader
 
 from .utils import EmptyCube, save_pdf, PDFSaver
 from .plot.convention import Convention, ConventionFactory, default_factory, \
@@ -31,7 +31,7 @@ __date__ = "20 Mar. 2019"
 __all__ = ["Formater", "TSVFormater", "CSVFormater", "LatexFormater",
            "LatexColorFormater", "Table", "GaussianPValue",
            "LatexColumnColorFormater", "LatexRowColorFormater",
-           "LinearColorer", "OrdinalColorer",
+           "LinearShader", "OrdinalShader",
            "Convention", "ConventionFactory", "default_factory",
            "OverrideConventionFactory", "TwoLegendPlot",
            "Plot2D", "TightLayout", "HzSubplot", "ScatterPlot",

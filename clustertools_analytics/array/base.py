@@ -1,4 +1,5 @@
 import os
+import copy
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from functools import partial
@@ -19,114 +20,146 @@ table.fill_row("a", "b", "c")
 print(table)
 """
 
-class CellType(object):
+class Customizable(object):
+    def __init__(self, **properties):
+        self.properties = properties
+
+    def __getitem__(self, item):
+        return self.properties[item]
+
+    def __setitem__(self, key, value):
+        self.properties[key] = value
+        return self
+
+
+
+class CellType(Customizable):
     pass
 
-class MeanStd(CellType):
-    def __init__(self, mean, std):
-        self.mean = mean
-        self.std = std
+
+
+class Number(CellType):
+    @classmethod
+    def only_if_raw(cls, content):
+        if isinstance(content, CellType):
+            return content
+        return cls(content)
+
+    def __init__(self, content, format="{:.2f}", **properties):
+        super().__init__(**properties)
+        self.format = format
+        self.content = content
+
+    def __str__(self):
+        return self.format.format(self.content)
+
+    def __float__(self):
+        return self.content
+
+
+class CompositeElement(CellType):
+    def __init__(self, sub, parent, **properties):
+        super().__init__(**properties)
+        self.sub = sub
+        self.parent = parent
+
+    def __getitem__(self, item):
+        el = self.properties.get(item)
+        if not el:
+            el = super().__getitem__(item)
+        return el
+
+    def __str__(self):
+        return str(self.sub)
+
+
+
+class MeanStd(Number):
+    def __init__(self, mean, std, **properties):
+        super().__init__(**properties)
+        self.mean = CompositeElement(Number.only_if_raw(mean), self)
+        self.std = CompositeElement(Number.only_if_raw(std), self)
+
 
     def __str__(self):
         return "{} +/- {}".format(self.mean, self.std)
 
     def __float__(self):
-        return self.mean
+        return float(self.mean)
 
 
-class GaussianPValue(CellType):
+class PValue(Number):
+    def __init__(self, value, p_value, **properties):
+        super().__init__(**properties)
+        self.value = CompositeElement(Number.only_if_raw(value), self)
+        self.p_value = CompositeElement(Number.only_if_raw(p_value), self)
+
+    def __str__(self):
+        return "{} ({})".format(self.value, self.p_value)
+
+
+    def __float__(self):
+        return float(self.value)
+
+
+class GaussianPValue(PValue):
     def __init__(self, value, pop_mean, pop_std,
-                 bilateral=True):
+                 bilateral=True, **properties):
 
-        self.value = value
-
-        z = (value - pop_mean) / pop_std
-        self.p_value = 1 - stats.norm.cdf(abs(z))
+        z = (float(value) - pop_mean) / pop_std
+        p_value = 1 - stats.norm.cdf(abs(z))
 
         if bilateral:
-            self.p_value *= 2
+            p_value *= 2
+        super().__init__(value, p_value, **properties)
 
     def __str__(self):
         return "{} ({})".format(self.value, self.p_value)
 
     def __float__(self):
-        return self.value
+        return float(self.value)
 
 
+class AbstractRow(object):
+    pass
 
-class Formater(object):
-    def __init__(self, separator=" ", float_format="{:.2f}",
-                 sc_formater="{:.2e}"):
-        self.separator = separator
-        self.float_format = float_format
-        self.sc_formater = sc_formater
+class Row(list, AbstractRow):
+    pass
 
-    def _format_float(self, value, row, column):
-        return self.float_format.format(value)
-
-    def _format_special(self, special, row, column):
-        return str(special)
-
-    def _format_cell(self, cell, row, column):
-        if isinstance(cell, CellType):
-            return self._format_special(cell, row, column)
-        try:
-            v = float(cell)
-            return self._format_float(v, row, column)
-        except ValueError:
-            return str(cell)
-
-
-    def rows(self, table_content):
-        for r, row in enumerate(table_content):
-            row_str = []
-            for c, cell in enumerate(row):
-                row_str.append(self._format_cell(cell, r, c))
-            yield self.separator.join(row_str)
-
-    def __call__(self, table_content):
-        return os.linesep.join(list(self.rows(table_content)))
-
-
-class TSVFormater(Formater):
-    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
-        super().__init__("\t", float_format, sc_formater)
-
-    def _format_special(self, special, row, column):
-        if isinstance(special, MeanStd):
-            return self._format_float(special.mean, row, column)
-        return super()._format_special(special, row, column)
-
-
-class CSVFormater(Formater):
-    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
-        super().__init__(";", float_format, sc_formater)
-
+class RowSeparation(AbstractRow):
+    def __init__(self, double_sep=False):
+        self.double_sep = double_sep
 
 
 
 class Table(object):
-    def __init__(self, formatter):
-        self.formatter = formatter
-        self.content = [[""]]
+    def __init__(self):
+        self.rows = []
 
-    def new_column(self):
-        self.content[-1].append("")
+    def new_row_separation(self, double_sep=False):
+        self.rows.append(RowSeparation(double_sep))
+
+    def new_row(self):
+        self.rows.append(Row())
+        return self
+
+    def new_column(self, content=None):
+        if len(self.rows) == 0 or not isinstance(self.rows[-1], Row):
+            self.new_row()
+        if content is not None:
+            self.rows[-1].append(content)
         return self
 
     def fill_cell(self, content, new_column=True):
-        self.content[-1][-1] = content
+        self.rows[-1][-1] = content
         if new_column:
             self.new_column()
         return self
 
     def delete_cell(self):
-        self.content[-1] = self.content[-1][:-1]
+        self.rows[-1] = self.rows[-1][:-1]
         return self
 
-    def new_row(self):
-        self.content.append([""])
-        return self
 
     def fill_row(self, *args, new_row=True):
         for arg in args:
@@ -137,14 +170,110 @@ class Table(object):
         return self
 
     def delete_row(self):
-        self.content = self.content[:-1]
+        self.rows = self.rows[:-1]
         return self
 
-    def __str__(self):
-        return self.formatter(self.content)
-
     def __len__(self):
-        return len(self.content)
+        return len(self.rows)
+
+    def shape(self):
+        max_width = 0
+        for row in self.rows:
+            try:
+                l = len(row)
+                if l > max_width:
+                    max_width = l
+            except TypeError:
+                pass
+        return len(self.rows), max_width
+
+
+class Layout(object):
+    @classmethod
+    def from_dicts(cls, *dicts):
+        return cls(*[Customizable(**d) for d in dicts])
+
+    def __init__(self, *customizables):
+        self.customizables = customizables
+
+
+
+class FullTable(object):
+    def __init__(self, table_content, layout=None, caption=None):
+        self.table_content = table_content
+        if layout is None:
+            _, width = table_content.shape
+            dicts = [{"left-align": True}] + [{"left-align": True,
+                                               "left-border": True}
+                                              for _ in range(width)]
+            layout = Layout.from_dicts(*dicts)
+        self.layout = layout
+        self.caption = caption
+
+
+
+
+class Renderer(object):
+    def __init__(self, caption_first=True):
+        self.caption_first = caption_first
+        self.rendering = []
+
+    @property
+    def default_separator(self):
+        return " "
+
+    def cell_2_str(self, cell):
+        return str(cell)
+
+    def render_row(self, row):
+        if isinstance(row, RowSeparation):
+            self.render_single_row_separation()
+            if row.double_sep:
+                self.render_single_row_separation()
+        else:
+            cell_strs = [self.cell_2_str(cell) for cell in row]
+            self.rendering.append(self.default_separator.join(cell_strs))
+
+    def render_single_row_separation(self):
+        pass
+
+    def acknowledge_layout(self, layout):
+        pass
+
+    def write_caption(self, caption):
+        pass
+
+    def render_content(self, table_content):
+        for row in table_content.rows:
+            self.render_row(row)
+
+    def __call__(self, full_table):
+        if self.caption_first:
+            self.write_caption(full_table.caption)
+
+        self.acknowledge_layout(full_table.layout)
+
+        self.render_content(full_table.table_content)
+
+        if not self.caption_first:
+            self.write_caption(full_table.caption)
+
+        return self.pack()
+
+    def pack(self):
+        return os.linesep.join(self.rendering)
+
+
+
+class TSVRenderer(Renderer):
+    @property
+    def default_separator(self):
+        return "\t"
+
+class CSVRenderer(Renderer):
+    @property
+    def default_separator(self):
+        return ";"
 
 
 

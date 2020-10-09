@@ -4,11 +4,14 @@ from abc import ABCMeta
 from abc import abstractmethod
 from collections import defaultdict
 
-from clustertools_analytics.array.base import Formater, MeanStd, GaussianPValue
-from clustertools_analytics.array.colorer import LinearColorer
+from clustertools_analytics.array.base import Formater, MeanStd, GaussianPValue, \
+    Renderer
+from clustertools_analytics.array.colorer import LinearShader
 import pylatex
 
 
+
+# TODO remove
 class LatexFormater(Formater):
     def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
         super().__init__(" & ", float_format, sc_formater)
@@ -33,101 +36,31 @@ class LatexFormater(Formater):
         raise ValueError("Unknown cell type '{}'".format(repr(special)))
 
 
+class LatexRenderer(Renderer):
+    def __init__(self, caption_first=True):
+        super().__init__(caption_first)
+        self.tabular = None
 
-class BaseLatexColorFormater(LatexFormater):
-    def __init__(self, float_format="{:.2f}", sc_formater="{:.2e}"):
-        super().__init__(float_format, sc_formater)
+    @property
+    def default_separator(self):
+        return " & "
 
-    @abstractmethod
-    def _first_pass(self, table_content):
-        """Return a colorer"""
+    def cell_2_str(self, cell):
         pass
 
-    @abstractmethod
-    def reset_colorer(self):
+    def render_single_row_separation(self):
+        self.rendering.append("\\hline")
+
+    def write_caption(self, caption):
         pass
 
-    @abstractmethod
-    def pack_colorer(self):
+    def acknowledge_layout(self, layout):
         pass
 
-    def rows(self, table_content):
-        self.reset_colorer()
-        self._first_pass(table_content)
-        self.pack_colorer()
-        for x in super().rows(table_content):
-            yield x
-
-    def color_to_str(self, r, g, b, a):
-        return "\\cellcolor[rgb]{{{:.2f}, {:.2f}, {:.2f}}}" \
-               "".format(r, g, b)
-
-
-class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
-    def __init__(self, float_format="{:.2f}", colorer_factory=LinearColorer):
-        super().__init__(float_format)
-        self.colorer_factory = colorer_factory
-        self.colorers = defaultdict(colorer_factory)
-
-    def reset_colorer(self):
-        self.colorers = defaultdict(self.colorer_factory)
-
-    def pack_colorer(self):
-        for colorer in self.colorers.values():
-            colorer.pack()
-
-    @abstractmethod
-    def _get_colorer(self, row, column):
-        pass
-
-    def _first_pass(self, table_content):
-        for r, row in enumerate(table_content):
-            for c, cell in enumerate(row):
-                try:
-                    v = float(cell)
-                    self._get_colorer(r, c).memo(v)
-                except ValueError:
-                    if not isinstance(cell, str):
-                        warnings.warn("Uncolorable content '{}'. "
-                                      "Skipping".format(cell))
-
-    def _color_prefix(self, value, row, column):
-        color = self._get_colorer(row, column).float_to_color(value)
-        if color is None:
-            return ""
-        return self.color_to_str(*color)
-
-
-    def _format_special(self, special, row, column, raw=False):
-        if raw:
-            return super()._format_special(special, row, column, True)
-        prefix = self._color_prefix(float(special), row, column)
-        return "{} {}".format(prefix, super()._format_special(special, row, column, True))
 
 
 
-    def _format_float(self, value, row, column):
-        prefix = self._color_prefix(value, row, column)
-        return "{} {}".format(prefix, super()._format_float(value, row, column))
-
-
-
-class LatexColorFormater(LatexSubsetColorFormater):
-    def _get_colorer(self, row, column):
-        return self.colorers[0]
-
-
-class LatexColumnColorFormater(LatexSubsetColorFormater):
-    def _get_colorer(self, row, column):
-        return self.colorers[column]
-
-
-class LatexRowColorFormater(LatexSubsetColorFormater):
-    def _get_colorer(self, row, column):
-        return self.colorers[row]
-
-
-
+# TODO adapt for full table
 class LatexTableDoc(object):
 
     @classmethod
