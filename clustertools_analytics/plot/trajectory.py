@@ -15,6 +15,20 @@ def filter_nans(xs, yss):
 
 
 class TrajectoryDisplayer(object):
+    def __init__(self):
+        self.label2color = {}
+
+
+    def get_color(self, color, label):
+        if color is not None:
+            return color
+        return self.label2color.get(label)
+
+    def memorize_color(self, color, label):
+        if label is not None:
+            self.label2color[label] = color
+
+
     def __call__(self, ax, xs, yss, convention):
         """
         Parameters
@@ -24,17 +38,28 @@ class TrajectoryDisplayer(object):
         yss: list [n, k]
             The ys to aggregate
         """
-        insert_label = True
         for xs, ys in filter_nans(xs, yss):
-            ax.plot(xs, ys,
-                    color=convention.color, alpha=0.8*convention.alpha,
-                    label=convention.label if insert_label else None,
-                    linestyle=convention.linestyle)
-            insert_label = False
+            color = convention.color
+            label = convention.label
+
+            color = self.get_color(color, label)
+
+            l = ax.plot(xs, ys, color=color, alpha=0.8 * convention.alpha,
+                        label=label if label not in self.label2color else None,
+                        linestyle=convention.linestyle)[0]
+
+            if color is None:
+               color = l.get_c()
+
+            self.memorize_color(color, label)
+
+
+
 
 
 class MinMaxMeanTrajectory(TrajectoryDisplayer):
     def __init__(self, display_all=True):
+        super().__init__()
         self.display_all = display_all
 
     def __call__(self, ax, xs, yss, convention):
@@ -49,20 +74,36 @@ class MinMaxMeanTrajectory(TrajectoryDisplayer):
             xs_ = xs[mask]
             mins, maxs, means = mins[mask], maxs[mask], means[mask]
 
-        ax.fill_between(xs_, mins, maxs,
-                        facecolor=convention.color,
-                        alpha=.5*convention.alpha)
 
-        ax.plot(xs_, means, color=convention.color,
-                label=convention.label,
-                linestyle=convention.linestyle,
-                alpha=convention.alpha)
+        color = convention.color
+        label = convention.label
+
+        color = self.get_color(color, label)
+
+        l = ax.plot(xs_, means, color=color,
+                    label=label if label not in self.label2color else None,
+                    linestyle=convention.linestyle,
+                    alpha=convention.alpha,
+                    zorder=2)[0]
+
+        if color is None:
+            color = l.get_c()
+
+        self.memorize_color(color, label)
+
+        ax.fill_between(xs_, mins, maxs,
+                        facecolor=color,
+                        alpha=.5*convention.alpha,
+                        zorder=0)
+
+
 
         if self.display_all:
             for xs, ys in filter_nans(xs, yss):
                 ax.plot(xs, ys,
-                        color=convention.color, alpha=.1*convention.alpha,
-                        linestyle=convention.linestyle)
+                        color=color, alpha=.1*convention.alpha,
+                        linestyle=convention.linestyle,
+                        zorder=1)
 
 
 class StdBarTrajectory(TrajectoryDisplayer):

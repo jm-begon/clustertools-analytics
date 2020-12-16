@@ -26,10 +26,12 @@ class TextDecorator(Plot2D):
 
 class LegendDecorator(Plot2D):
 
-    def __init__(self, decorated, location='best', title=None, **props):
+    def __init__(self, decorated, location='best', title=None, zorder=None,
+                 **props):
         super().__init__(decorated)
         self.location = location
         self.title = title
+        self.zorder = zorder
         self.props = props
 
     def plot_(self, cube, **kwargs):
@@ -39,11 +41,16 @@ class LegendDecorator(Plot2D):
             self.axes.set_position(
                 [box.x0, box.y0, box.width * .95, box.height])
 
-            self.axes.legend(loc="upper left", bbox_to_anchor=(1, 1),
-                             title=self.title, prop=self.props)
+            legend = self.axes.legend(loc="upper left", bbox_to_anchor=(1, 1),
+                                      title=self.title, prop=self.props)
         else:
-            self.axes.legend(loc=self.location, title=self.title,
-                             prop=self.props)
+            legend = self.axes.legend(loc=self.location, title=self.title,
+                                      prop=self.props)
+
+        if self.zorder is not None:
+            legend.zorder = self.zorder
+
+
 
 
 class GridDecorator(Plot2D):
