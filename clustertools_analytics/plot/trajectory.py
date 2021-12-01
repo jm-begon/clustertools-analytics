@@ -1,7 +1,19 @@
 import numpy as np
 
+def filter_nans(ref, *others):
+    nan = np.isnan(ref)
+    if nan.any():
+        mask = ~nan
+    else:
+        mask = slice(None)
 
-def filter_nans(xs, yss):
+    if len(others) == 0:
+        return ref[mask]
+
+    return tuple([ref[mask]] + [o[mask] for o in others])
+
+
+def filter_nans_yss(xs, yss):
     for ys in yss:
         nan = np.isnan(ys)
         if nan.all():  # Skip all
@@ -38,7 +50,7 @@ class TrajectoryDisplayer(object):
         yss: list [n, k]
             The ys to aggregate
         """
-        for xs, ys in filter_nans(xs, yss):
+        for xs, ys in filter_nans_yss(xs, yss):
             color = convention.color
             label = convention.label
 
@@ -67,13 +79,7 @@ class MinMaxMeanTrajectory(TrajectoryDisplayer):
         maxs = np.nanmax(yss, axis=0)
         means = np.nanmean(yss, axis=0)
 
-        xs_ = xs
-        nan = np.isnan(means)
-        if nan.any():
-            mask = ~nan
-            xs_ = xs[mask]
-            mins, maxs, means = mins[mask], maxs[mask], means[mask]
-
+        means, mins, maxs, xs_ = filter_nans(means, mins, maxs, xs)
 
         color = convention.color
         label = convention.label
@@ -99,7 +105,7 @@ class MinMaxMeanTrajectory(TrajectoryDisplayer):
 
 
         if self.display_all:
-            for xs, ys in filter_nans(xs, yss):
+            for xs, ys in filter_nans_yss(xs, yss):
                 ax.plot(xs, ys,
                         color=color, alpha=.1*convention.alpha,
                         linestyle=convention.linestyle,
@@ -111,10 +117,7 @@ class StdBarTrajectory(TrajectoryDisplayer):
         means = np.nanmean(yss, axis=0)
         stds = np.nanstd(yss, axis=0)
 
-        nan = np.isnan(means)
-        if nan.any():
-            mask = ~nan
-            xs, means, stds, = xs[mask], means[mask], stds[mask]
+        means, stds, xs = filter_nans(means, stds, xs)
 
         ax.errorbar(xs, means, yerr=stds,
                     color=convention.color, label=convention.label,

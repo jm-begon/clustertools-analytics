@@ -33,11 +33,13 @@ class Subplot(Layout):
                  sharex=False):
         super().__init__(figure)
 
-        plt.subplots(n_rows, n_cols, sharey=sharey, num=self._fig.number,
-                     sharex=sharex)
+        _, self.subplots = plt.subplots(n_rows, n_cols,
+                                        sharey=sharey,
+                                        num=self._fig.number,
+                                        sharex=sharex)
 
     def __iter__(self):
-        return iter(self._fig.axes)
+        return iter(self.subplots)
 
     def decorate(self, xlabel=None, ylabel=None, title=None):
         if title is not None:
@@ -45,7 +47,7 @@ class Subplot(Layout):
         if xlabel is not None:
             self._fig.text(0.5, 0.04, xlabel, ha='center')
         if ylabel is not None:
-            self._fig.axes[0].set_ylabel(ylabel)
+            self._fig.text(0.04, 0.5, ylabel, va='center', rotation="vertical")
 
     def make_legend(self, *args, **kwargs):
         handles, labels = None, None
@@ -64,6 +66,14 @@ class HzSubplot(Subplot):
     def __init__(self, n_subplots, figure=None, sharex=False):
         super().__init__(n_rows=1, n_cols=n_subplots, figure=figure,
                          sharey=True, sharex=sharex)
+
+
+class VSubplot(Subplot):
+    def __init__(self, n_subplots, figure=None, sharey=False):
+        super().__init__(n_rows=n_subplots, n_cols=1, figure=figure,
+                         sharey=sharey, sharex=True)
+
+
 
 
 class TwoLegendPlot(Layout):

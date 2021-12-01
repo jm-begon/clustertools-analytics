@@ -22,6 +22,12 @@ print(table)
 class CellType(object):
     pass
 
+class StrCell(CellType):
+    def __init__(self, s):
+        self.s = s
+    def __str__(self):
+        return str(self.s)
+
 class MeanStd(CellType):
     def __init__(self, mean, std):
         self.mean = mean
@@ -68,6 +74,9 @@ class Formater(object):
         return str(special)
 
     def _format_cell(self, cell, row, column):
+        if isinstance(cell, StrCell):
+            return str(cell)
+
         if isinstance(cell, CellType):
             return self._format_special(cell, row, column)
         try:

@@ -1,5 +1,5 @@
 from .array.base import MeanStd, Formater, TSVFormater, CSVFormater, Table, \
-    GaussianPValue
+    GaussianPValue, StrCell
 from .array.latex import LatexFormater, LatexColorFormater, \
     LatexColumnColorFormater, LatexRowColorFormater
 from .array.colorer import LinearColorer, OrdinalColorer
@@ -10,7 +10,7 @@ from .plot.convention import Convention, ConventionFactory, default_factory, \
 from .plot.layout import Subplot, HzSubplot, TwoLegendPlot
 from .plot.plot import Plot2D, ScatterPlot, \
     TrajectoryPlot, BarPlot, ScatterSpaceHz, HorizontalLine, HistogramPlot, \
-    BoxPlot, VerticalLine
+    BoxPlot, VerticalLine, DispersionEllipse
 from .plot.trajectory import TrajectoryDisplayer, MinMaxMeanTrajectory, \
     StdBarTrajectory
 from .plot.decorators import TextDecorator, LegendDecorator, GridDecorator, \
@@ -18,7 +18,7 @@ from .plot.decorators import TextDecorator, LegendDecorator, GridDecorator, \
 from .accessor import Accessor, NumpyfySqueeze, MetricOverParameter, \
     name_to_accessor, DiffAccessor, DomainAccessor, YSeriesXRangeAccessor, \
     XSeriesYSeries, AtomicAcessor, SeriesAccessor, YSeriesByParamOverParams, \
-    DeltaSeries
+    DeltaSeries, MedianFilteredSeries, SamplingSeries, InterpXYSeries
 from .plot.widget import Legend
 
 
@@ -44,4 +44,6 @@ __all__ = ["Formater", "TSVFormater", "CSVFormater", "LatexFormater",
            "name_to_accessor", "DiffAccessor", "DomainAccessor",
            "XSeriesYSeries", "AtomicAcessor", "SeriesAccessor",
            "YSeriesXRangeAccessor", "YSeriesByParamOverParams", "DeltaSeries",
-           "EmptyCube", "save_pdf", "PDFSaver", "VerticalLine", "Legend"]
+           "MedianFilteredSeries", "SamplingSeries",
+           "EmptyCube", "save_pdf", "PDFSaver", "VerticalLine",
+           "Legend", "InterpXYSeries", "DispersionEllipse"]

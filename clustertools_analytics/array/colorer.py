@@ -33,6 +33,14 @@ class BaseFloatColorer(object, metaclass=ABCMeta):
         return self.float_to_color(float_value)
 
 
+class NoColor(BaseFloatColorer):
+    def memo_float(self, float_value):
+        pass
+
+    def float_to_color(self, float_value):
+        return None
+
+
 class LinearColorer(BaseFloatColorer):
     # Colormap: https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html
     def __init__(self, shading_min=0, shading_max=.6, cmap="Greys"):

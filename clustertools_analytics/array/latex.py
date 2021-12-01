@@ -4,8 +4,8 @@ from abc import ABCMeta
 from abc import abstractmethod
 from collections import defaultdict
 
-from clustertools_analytics.array.base import Formater, MeanStd, GaussianPValue
-from clustertools_analytics.array.colorer import LinearColorer
+from .base import Formater, MeanStd, GaussianPValue, StrCell
+from .colorer import LinearColorer, NoColor
 import pylatex
 
 
@@ -63,11 +63,13 @@ class BaseLatexColorFormater(LatexFormater):
                "".format(r, g, b)
 
 
+
 class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
     def __init__(self, float_format="{:.2f}", colorer_factory=LinearColorer):
         super().__init__(float_format)
         self.colorer_factory = colorer_factory
         self.colorers = defaultdict(colorer_factory)
+
 
     def reset_colorer(self):
         self.colorers = defaultdict(self.colorer_factory)
@@ -86,8 +88,8 @@ class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
                 try:
                     v = float(cell)
                     self._get_colorer(r, c).memo(v)
-                except ValueError:
-                    if not isinstance(cell, str):
+                except (ValueError, TypeError):
+                    if not isinstance(cell, str) and not isinstance(cell, StrCell):
                         warnings.warn("Uncolorable content '{}'. "
                                       "Skipping".format(cell))
 
@@ -109,6 +111,41 @@ class LatexSubsetColorFormater(BaseLatexColorFormater, metaclass=ABCMeta):
     def _format_float(self, value, row, column):
         prefix = self._color_prefix(value, row, column)
         return "{} {}".format(prefix, super()._format_float(value, row, column))
+
+
+class WithSkips(LatexSubsetColorFormater):
+    def __init__(self, latex_color_formater):
+        self.decorated = latex_color_formater
+        super().__init__()
+        self.cell_skips = set()
+        self.row_skips = set()
+        self.col_skips = set()
+
+    def reset_colorer(self):
+        return self.decorated.reset_colorer()
+
+    def pack_colorer(self):
+        return self.decorated.pack_colorer()
+
+    def skip_cell(self, row, column):
+        self.cell_skips.add((row, column))
+        return self
+
+    def skip_rows(self, *rows):
+        for r in rows:
+            self.row_skips.add(r)
+        return self
+
+    def skip_columns(self, *cols):
+        for c in cols:
+            self.col_skips.add(c)
+        return self
+
+    def _get_colorer(self, row, column):
+        if (row, column) in self.cell_skips or row in self.row_skips \
+            or column in self.col_skips:
+            return NoColor()
+        return self.decorated._get_colorer(row, column)
 
 
 
@@ -182,6 +219,7 @@ class LatexTableDoc(object):
 
     def new_page(self):
         self.doc.append(pylatex.NewPage())
+        self.len_last_page = 0
 
     def set_default_fpath(self, fpath):
         self.fpath = fpath

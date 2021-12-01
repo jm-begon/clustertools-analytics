@@ -1,3 +1,5 @@
+import numpy as np
+
 import matplotlib.ticker as ticker
 
 from .plot import Plot2D
@@ -51,25 +53,24 @@ class LegendDecorator(Plot2D):
             legend.zorder = self.zorder
 
 
-
-
 class GridDecorator(Plot2D):
-    def __init__(self, decorated, xgrid=True, ygrid=True):
+    def __init__(self, decorated, xgrid=True, ygrid=True, **kwargs):
         super().__init__(decorated)
         self.xgrid = xgrid
         self.ygrid = ygrid
+        self.kwargs = kwargs
 
     def plot_(self, cube, **kwargs):
         self.axes.grid(False)
         if self.xgrid:
-            self.axes.xaxis.grid(True)
+            self.axes.xaxis.grid(True, **self.kwargs)
         if self.ygrid:
-            self.axes.yaxis.grid(True, which="both")
+            self.axes.yaxis.grid(True, **self.kwargs)
 
 
 class LimitDecorator(Plot2D):
     def __init__(self, decorated, x_min=None, x_max=None, y_min=None,
-                 y_max=None):
+                 y_max=None, auto_adjust_x=False, auto_adjust_y=False):
         # TODO add support for ticks
         super().__init__(decorated)
         self.x_min = x_min
@@ -77,10 +78,59 @@ class LimitDecorator(Plot2D):
         self.y_min = y_min
         self.y_max = y_max
 
-    def plot_(self, cube, **kwargs):
+        self.adjust_y = auto_adjust_y
+        self.adjust_x = auto_adjust_x
+        self.margin = 0.1
 
+
+    def plot_(self, cube, **kwargs):
         self.axes.set_xlim(self.x_min, self.x_max)
         self.axes.set_ylim(self.y_min, self.y_max)
+
+        if self.adjust_x:
+            self.auto_adjust(y_to_x=False)
+        if self.adjust_y:
+            self.auto_adjust(y_to_x=True)
+
+    def auto_adjust(self, y_to_x=True):
+
+        xs = []
+        ys = []
+        for lines in self.axes.get_lines():
+            xs.append(np.array(lines.get_xdata()))
+            ys.append(np.array(lines.get_ydata()))
+
+        xs, ys = np.concatenate(xs), np.concatenate(ys)
+        lo, hi = self.axes.get_xlim() if y_to_x else self.axes.get_ylim()
+
+        ref, adj = (xs, ys) if y_to_x else (ys, xs)
+
+        vs = adj[np.logical_and(ref > lo, ref < hi)]
+        to = vs.max()
+        bo = vs.min()
+
+        spread = to - bo
+        to = to + self.margin * spread
+        bo = bo - self.margin * spread
+
+        def if_not_None(v, r):
+            return r if r is not None else v
+
+        if y_to_x:
+            bo = if_not_None(bo, self.y_min)
+            to = if_not_None(to, self.y_max)
+            self.axes.set_ylim(bo, to)
+        else:
+            bo = if_not_None(bo, self.x_min)
+            to = if_not_None(to, self.x_max)
+            self.axes.set_xlim(bo, to)
+
+
+
+
+
+
+
 
 
 class SameLimitDecorator(Plot2D):

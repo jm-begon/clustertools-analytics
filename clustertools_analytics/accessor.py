@@ -196,6 +196,45 @@ class XSeriesYSeries(YSeriesXRangeAccessor):
         return xs, yss
 
 
+class InterpXYSeries(XSeriesYSeries):
+    def __init__(self, interp_points, x_accessor, y_accessor, *parameter_names,
+                 left=None, right=None, period=None):
+        self.interp_points = interp_points
+        super().__init__(x_accessor, y_accessor, *parameter_names)
+        self.left = left
+        self.right = right
+        self.period = period
+
+
+    def access(self, cube):
+        yss = self.y_accessor(cube)
+        xs = self.x_accessor(cube)
+        if xs.ndim == 2:
+            xss = xs
+        else:
+            xss = [xs for _ in range(len(yss))]
+
+        ps = self.interp_points if not isinstance(self.interp_points, Accessor) \
+            else self.interp_points(cube)
+
+        if ps.ndim == 2:
+            pss = ps
+        else:
+            pss = [ps for _ in range(len(yss))]
+
+        results = []
+        for ps, xs, ys in zip(pss, xss, yss):
+            r = np.interp(ps, xs, ys, left=self.left, right=self.right,
+                          period=self.period)
+            results.append(r)
+
+        results = np.array(results)
+
+        return pss[0], results
+
+
+
+
 class YSeriesByParamOverParams(SeriesAccessor):
     """
     The values are of an atomic metric, ordered by a parameter domain value.
@@ -224,6 +263,34 @@ class YSeriesByParamOverParams(SeriesAccessor):
                          repr(self.metric_accessor),
                          repr(self.by_param_name),
                          repr(self.y_accessor.parameter_names))
+
+
+class MedianFilteredSeries(SeriesAccessor):
+    def __init__(self, decorated, window_size=10):
+        self.decorated = decorated
+        self.window_size = window_size
+
+    def access(self, cube):
+        from scipy.ndimage import median_filter
+        xs, yss = self.decorated.access(cube)
+
+        yss = median_filter(yss, size=(1, self.window_size))
+
+        return xs, yss
+
+
+class SamplingSeries(SeriesAccessor):
+    def __init__(self, decorated, sampling_rate=.1):
+        self.decorated = decorated
+        self.sampling_rate = sampling_rate
+
+    def access(self, cube):
+        from scipy.ndimage import median_filter
+        xs, yss = self.decorated.access(cube)
+
+        span = int(self.sampling_rate * len(xs))
+        xs, yss = xs[::span], yss[:, ::span]
+        return xs, yss
 
 
 class DeltaSeries(SeriesAccessor):

@@ -3,10 +3,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.patches import Ellipse
 
 from .convention import default_factory
 from .trajectory import TrajectoryDisplayer
 from ..accessor import Accessor
+from ..utils import Ellipse2D
 
 
 class Plot2D(object):
@@ -90,10 +92,6 @@ class LegendeablePlot(Plot2D):
 
 
 class ScatterPlot(LegendeablePlot):
-    """
-    Plot metric in scatter plot for several random states
-    """
-
     def __init__(self, x_accessor, y_accessor,
                  convention_factory=None, decorated=None):
         super().__init__(decorated=decorated,
@@ -115,6 +113,67 @@ class ScatterPlot(LegendeablePlot):
                           marker=convention.marker,
                           label=convention.label,
                           alpha=convention.alpha)
+
+
+class DispersionEllipse(LegendeablePlot):
+    """
+    Plot metric in scatter plot for several random states
+    """
+
+    def __init__(self, x_accessor, y_accessor,
+                 convention_factory=None,
+                 facecolor=None,
+                 display_center=True,
+                 confidence_interval=0.95,
+                 ellipse_alphactor=1,
+                 decorated=None):
+        super().__init__(decorated=decorated,
+                         convention_factory=convention_factory)
+        self._get_x = x_accessor
+        self._get_y = y_accessor
+        self.facecolor = facecolor
+        self.display_center = display_center
+        self.confidence_interval = confidence_interval
+        self.ellipse_alphactor = ellipse_alphactor
+        self.ellipses = []
+
+    def plot_(self, cube, **kwargs):
+        convention = self.create_convention(cube)
+
+        xs = self._get_x(cube)
+        ys = self._get_y(cube)
+
+        if xs.ndim == 0:
+            # Same x for all ys
+            xs = np.ones(ys.shape, dtype=xs.dtype) * xs
+
+        xs = xs.flatten()
+        ys = ys.flatten()
+
+        ellipse = Ellipse2D.create_dispersion(xs, ys, self.confidence_interval)
+        x_c, y_c = ellipse.center
+        width, height = ellipse.get_width_height()
+        self.ellipses.append(ellipse)
+
+        if self.display_center:
+            ell_kwargs = {}
+            scat_kwargs = {"label": convention.label}
+        else:
+            ell_kwargs = {"label": convention.label}
+            scat_kwargs = {}
+
+        facecolor = "none" if self.facecolor is None else convention.color
+        elp = Ellipse(ellipse.center, width, height, ellipse.angle_deg,
+                      facecolor=facecolor, edgecolor=convention.color,
+                      alpha=convention.alpha*self.ellipse_alphactor,
+                      **ell_kwargs)
+
+        self.axes.add_patch(elp)
+
+        if self.display_center:
+            self.axes.scatter([x_c], [y_c], color=convention.color,
+                              marker=convention.marker, alpha=convention.alpha,
+                              **scat_kwargs)
 
 
 class TrajectoryPlot(LegendeablePlot):
@@ -149,21 +208,31 @@ class BarPlot(LegendeablePlot):
         super().__init__(decorated=decorated,
                          convention_factory=convention_factory)
         self.height_accessor = height_accessor
-        self._n_bars = 0
+        self._curr_bar = 0
         self._vertical = vertical
+        self._bottoms = []
+        self._stack = False
 
     def plot_(self, cube, **kwargs):
         convention = self.create_convention(cube)
         values = self.height_accessor(cube)
-        xs = [self._n_bars]
-        self._n_bars += 1
+        xs = [self._curr_bar]
         ys = [values.mean()]
         std = [values.std()]
+
+        if self._stack:
+            bottom = self._bottoms[self._curr_bar]
+            self._bottoms[self._curr_bar] =+ ys[0]
+            self._curr_bar = (self._curr_bar + 1) % self.n_bars
+        else:
+            bottom = None
+            self._bottoms.append(ys[0])
+            self._curr_bar += 1
 
         plotter = self.axes.bar if self._vertical else self.axes.barh
         err_label = "yerr" if self._vertical else "xerr"
 
-        plotter(xs, ys, color=convention.color, label=convention.label,
+        plotter(xs, ys, bottom=bottom, color=convention.color, label=convention.label,
                 hatch=convention.hatch, alpha=convention.alpha,
                 **{err_label: std})
 
@@ -172,10 +241,19 @@ class BarPlot(LegendeablePlot):
         else:
             self.axes.set_yticks([])
 
+    @property
+    def n_bars(self):
+        return len(self._bottoms)
+
+    def stack(self):
+        self._stack = True
+
 
 class StackedBarPlot(LegendeablePlot):
     """
     1 cube + 1 series accessor = 1 bar in p parts (aka layers)
+
+    Problem: how do use the convention to color the different parts?
     """
     def __init__(self, bar_accessor, convention_factory=None,
                  decorated=None):
@@ -187,6 +265,8 @@ class StackedBarPlot(LegendeablePlot):
 class StackedBarPlotByLayer(LegendeablePlot):
     """
     1 cube + 1 series accessor = p bars with 1 one part (aka layer)
+
+    Problem: how do you label the bars?
     """
     def __init__(self, layer_accessor, convention_factory=None,
                  decorated=None):
@@ -298,7 +378,7 @@ class HorizontalLine(LegendeablePlot):
             self.linestyle
         self.axes.axhline(np.nanmean(ys), color=convention.color,
                           alpha=self.alpha, linestyle=linestyle,
-                          linewidth=self.linewidth)
+                          linewidth=self.linewidth, label=convention.label)
 
 
 class VerticalLine(LegendeablePlot):
